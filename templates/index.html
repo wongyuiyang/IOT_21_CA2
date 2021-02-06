@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>My Smart-Room Web App</title>
+
+    <!-- Custom fonts for this template-->
+    <link href="static/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link
+        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
+        rel="stylesheet">
+
+    <!-- Custom styles for this template-->
+    <link href="static/css/sb-admin-2.min.css" rel="stylesheet">
+
+    <style> #chartDiv {width:100%;}</style>
+    <title>Google Charts with Flask</title>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.2.1.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', {'packages':['corechart','table']});
+        //Set a callback to run when the Google Visualization API is loaded.
+        google.charts.setOnLoadCallback(getNewData);
+
+        var chart;
+        var graphdata;
+
+        //DHT functions
+        //DHT graph and table
+        function reset_status_messages(){
+            $("#DHTstatus").html("")
+        }
+
+        function getNewData(){
+            $("#DHTstatus").html("Fetching data to plot graph...");
+
+            jQuery.ajax({
+                url: "/api/getdata",
+                type: 'POST',
+                success: function(ndata, textStatus, xhr){
+                    console.log(ndata.chart_data.data)
+                    $("#DHTstatus").html("Data fetched! Now plotting graph!");
+                    chartdata = ndata.chart_data.data
+                    graphdata = createDataTable(chartdata)
+                    drawLineChart(graphdata)
+                    drawDataTable(graphdata)
+                    $("#DHTstatus").html("Graph plotted");
+                }//end success
+            });//end ajax
+        } //end getNewData
+
+        function createDataTable(newdata){
+            graphdata = new google.visualization.DataTable();
+            graphdata.addColumn('string', 'Time');
+            graphdata.addColumn('number', 'Humidity (Blue)');
+            graphdata.addColumn('number', 'Temperature (Red)')
+            for (i in newdata) {
+                datetime = newdata[i].datetimeinfo;
+                jsdatetime = new Date(Date.parse(datetime));
+                jstime = jsdatetime.toLocaleTimeString();
+                humidity = {v:newdata[i].humidity, f:newdata[i].humidity + '%'};
+                temperature = {v:newdata[i].temperature, f:newdata[i].temperature + "C"};
+                graphdata.addRows([[jstime,humidity,temperature]]);
+            }//end for
+            return graphdata
+        }
+
+        function drawDataTable(graphdata){
+            var table = new google.visualization.Table(document.getElementById('DHTtable_div'));
+            table.draw(graphdata, {showRowNumber: true, width: '100%', height: '100%'});
+
+        }//end drawTable
+
+        function drawLineChart(graphdata) {
+            chart = new google.visualization.LineChart(
+            document.getElementById('DHTchart_div'));
+            chart.draw(graphdata, {legend: 'none', vAxis: {baseline: 0}});
+            return
+        }//end drawChart
+
+        $(document).ready(function(){
+            reset_status_messages()
+
+            setInterval(function () {
+                getNewData()
+            }, 60000); //Get new data every minute
+        });
+
+        //DHT current values
+        function getDHT(){
+            jQuery.ajax({
+                url: "/getCurrentDHT" ,
+                type: 'POST',
+                success: function(ndata, textStatus, xhr){ 
+                    console.log(ndata)
+                    $("#dhtcurrentstatus").html("Current Temperature:" + ndata.temperature + "C<br/>" + "Current Humidity: " + ndata.humidity + "%");
+                }//end success
+            });//end ajax
+        } //end 
+
+        $(document).ready(function(){
+            setInterval(function () {
+                getDHT();
+            }, 60000); //Get new data of current DHT every minute
+        });
+
+        //DHT highest values
+        function getHighestDHT(){
+            jQuery.ajax({
+                url: "/getHighestDHT" ,
+                type: 'POST',
+                success: function(ndata, textStatus, xhr){ 
+                    console.log(ndata)
+                    $("#dhtmax").html("Highest temperature today: " + ndata.temperature + "C<br/>" + "Highest humidity today: " + ndata.humidity + "%");
+                }//end success
+            });//end ajax
+        } //end 
+
+        $(document).ready(function(){
+
+            setInterval(function () {
+                getHighestDHT();
+            }, 60000); //Get new highest data every minute
+        });
+
+        //LED functions
+        function LEDOne(){
+            $.ajax({url: "writeLED/One",
+                success: function(result){
+                    $("#ledstatus").html(result);
+                }
+            })
+        }
+
+        function LEDTwo(){
+            $.ajax({url: "writeLED/Two",
+                success: function(result){
+                    $("#ledstatus").html(result);
+                }
+            })
+        }
+
+        function LEDThree(){
+            $.ajax({url: "writeLED/Three",
+                success: function(result){
+                    $("#ledstatus").html(result);
+                }
+            })
+        }
+
+        $(document).ready(function(){
+            $("#LEDb1").click(function(){
+                LEDOne();
+            });
+            $("#LEDb2").click(function(){
+                LEDTwo();
+            });
+            $("#LEDb3").click(function(){
+                LEDThree();
+            });
+        });
+
+        //Pump functions
+        function turnonPump(){
+            $.ajax({url: "writePump/On",
+                success: function(result){
+                    $("#pumpstatus").html("Pump is " + result);
+                }
+            })
+        }
+
+        function turnoffPump(){
+            $.ajax({url: "writePump/Off",
+                success: function(result){
+                    $("#pumpstatus").html("Pump is " + result);
+                }
+            })
+        }
+
+        $(document).ready(function(){
+            $("#Pumpb1").click(function(){
+                turnonPump();
+            });
+            $("#Pumpb2").click(function(){
+                turnoffPump();
+            });
+        });
+        
+        //TV functions
+        function TVPower(){
+            $.ajax({url: "writeTV/Power",
+                success: function(result){
+                    $("#TVstatus").html(result);
+                }
+            })
+        }
+
+        $(document).ready(function(){
+            $("#TVb1").click(function(){
+                TVPower();
+            });
+        });
+
+        //Fan functions
+        function FanPower(){
+            $.ajax({url: "writeFan/Power",
+                success: function(result){
+                    $("#Fanstatus").html(result);
+                }
+            })
+        }
+
+        $(document).ready(function(){
+            $("#Fanb1").click(function(){
+                FanPower();
+            });
+        });
+
+        //TV and Fan graph and table
+        function reset_IRstatus_messages(){
+            $("#IRstatus").html("")
+        }
+
+        function getNewIRData(){
+            $("#IRstatus").html("Fetching data to plot graph...");
+
+            jQuery.ajax({
+                url: "/api/getIRdata",
+                type: 'POST',
+                success: function(ndata, textStatus, xhr){
+                    console.log(ndata.chart_data.data)
+                    $("#IRstatus").html("Data fetched! Now plotting graph!");
+                    chartdata = ndata.chart_data.data
+                    graphdata = createIRDataTable(chartdata)
+                    drawIRColumnChart(graphdata)
+                    drawIRDataTable(graphdata)
+                    $("#IRstatus").html("Graph plotted");
+                }//end success
+            });//end ajax
+        } //end getNewData
+
+        function createIRDataTable(newdata){
+            graphdata = new google.visualization.DataTable();
+            graphdata.addColumn('string', 'Date');
+            graphdata.addColumn('number', 'TV usage');
+            graphdata.addColumn('number', 'Fan usage')
+            for (i in newdata) {
+                date = newdata[i].dateinfo;
+                //jsdate = new Date(Date.parse(date));
+                //jsdatestring = jsdate.toLocaleTimeString();
+                TVHours = {v:newdata[i].TVHours, f:newdata[i].TVHours + 'hours'};
+                FanHours = {v:newdata[i].FanHours, f:newdata[i].FanHours + 'hours'};
+                graphdata.addRows([[date,TVHours,FanHours]]);
+            }//end for
+            return graphdata
+        }
+
+        function drawIRDataTable(graphdata){
+            var table = new google.visualization.Table(document.getElementById('IRtable_div'));
+            table.draw(graphdata, {showRowNumber: true, width: '100%', height: '100%'});
+
+        }//end drawTable
+
+        function drawIRColumnChart(graphdata) {
+            chart = new google.visualization.ColumnChart(
+            document.getElementById('IRchart_div'));
+            chart.draw(graphdata, {legend: 'none', vAxis: {baseline: 0}});
+            return
+        }//end draw ColumnChart
+
+        $(document).ready(function(){
+            reset_IRstatus_messages()
+
+            setInterval(function () {
+                getNewIRData()
+            }, 60000); //Get new data every minute
+        });
+
+        //Camera functions
+        function CameraCapture(){
+            $.ajax({url: "writeCamera/Capture",
+                success: function(ndata, textStatus, xhr){ 
+                        console.log(ndata)
+                        $("#Camerastatus").html(ndata.message);
+                        Cameraimgsrc = ndata.image
+                        document.getElementById('Camerasource').innerHTML = '<img src="' + Cameraimgsrc + '" width="300" height="200">';
+                }
+            })
+        }
+
+        $(document).ready(function(){
+            $("#Camerab1").click(function(){
+                CameraCapture();
+            });
+        });
+
+    </script>
+</head>
+
+<body id="page-top">
+
+    <!-- Page Wrapper -->
+    <div id="wrapper">
+
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+
+            <!-- Main Content -->
+            <div id="content">
+
+                <!-- Topbar -->
+                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+                    <h1 class="h3 mb-0 text-gray-800">My Smart-Room Web App</h1>
+                    <!-- Topbar Navbar -->
+                    <ul class="navbar-nav ml-auto">
+                        <!-- Nav Item - User Information -->
+                        <span class="mr-2 d-none d-lg-inline text-gray-600 small">Logged in as {{ value }}</span>
+                    </ul>
+                    <a href="login" class="btn btn-secondary btn-lg active" role="button" aria-pressed="true">Logout</a>
+                </nav>
+                <!-- End of Topbar -->
+
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+
+                    <!-- Page Heading -->
+                    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                        <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
+                    </div>
+
+                    <!-- Content Row -->
+                    <div class="row">
+
+                        <!-- Highest Temp/Humidity Today -->
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-primary shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                Current Temp/Humidity Today</div>
+                                                <div class="row no-gutters align-items-center">
+                                                    <div><span id="dhtcurrentstatus"></span></div>
+                                                </div><br>
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                Highest Temp/Humidity Today</div>
+                                                <div class="row no-gutters align-items-center">
+                                                    <div><span id="dhtmax"></span></div>
+                                                </div>
+                                        </div>
+                                        <!--
+                                        <div class="col-auto">
+                                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                                        </div>
+                                        -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Smart-Plant LED Settings -->
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-success shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                Smart-Plant LED Settings</div>
+                                            <button id="LEDb1">LED (Light Sensor)</button><br>
+                                            <button id="LEDb2">LED (Time)</button><br>
+                                            <button id="LEDb3">LED Off</button><br>
+                                            <span id="ledstatus"></span>
+                                        </div>
+                                        <!--
+                                        <div class="col-auto">
+                                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                                        </div>
+                                        -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Smart-Plant Water Pump -->
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-info shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Smart-Plant Water Pump Settings
+                                            </div>
+                                            <button id="Pumpb1">Start Auto Watering</button><br>
+                                            <button id="Pumpb2">Stop Auto Watering</button><br>
+                                            <span id="pumpstatus"></span>
+                                        </div>
+                                        <!--
+                                        <div class="col-auto">
+                                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                                        </div>
+                                        -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Smart-Monitoring TV and Fan -->
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-warning shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                TV and Fan settings</div>
+                                            <button id="TVb1">TV Power button</button><br>
+                                            <button id="Fanb1">Fan Power button</button><br>
+                                            <span id="TVstatus"></span><br>
+                                            <span id="Fanstatus"></span>
+                                        </div>
+                                        <!--
+                                        <div class="col-auto">
+                                            <i class="fas fa-comments fa-2x text-gray-300"></i>
+                                        </div>
+                                        -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content Row -->
+
+                    <div class="row">
+
+                        <!-- Area Chart -->
+                        <div class="col-xl-8 col-lg-7">
+                            <div class="card shadow mb-4">
+                                <!-- Card Header - Dropdown -->
+                                <div
+                                    class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <h6 class="m-0 font-weight-bold text-primary">DHT Graph</h6>
+                                    
+                                </div>
+                                <!-- Card Body -->
+                                <div class="card-body">
+                                    <div class="chart-area">
+                                        <input id="buttonloadDHTchart" type="button" onclick="loadChart()" value="Update graph">
+                                        <div id="DHTstatus"></div>
+                                        <div id="DHTchart_div" style="width:100%"></div>
+                                    </div>
+                                </div>
+                                <!-- Card Body -->
+                                <div class="card-body">
+                                    <div class="chart-area">
+                                        <div id="DHTtable_div" style="width:100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Picam -->
+                        <div class="col-xl-4 col-lg-5">
+                            <div class="card shadow mb-4">
+                                <!-- Card Header - Dropdown -->
+                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <div><h6 class="m-0 font-weight-bold text-primary">Picam</h6></div>
+                                </div>
+                                <!-- Card Body -->
+                                <div class="card-body">
+                                    <button id="Camerab1">Capture Image</button><br>
+                                    <span id="Camerastatus"></span><br>
+                                    <div id="Camerasource"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Area Chart -->
+                        <div class="col-xl-8 col-lg-7">
+                            <div class="card shadow mb-4">
+                                <!-- Card Header - Dropdown -->
+                                <div
+                                    class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <h6 class="m-0 font-weight-bold text-primary">TV and Fan Usage</h6>
+                                    
+                                </div>
+                                <!-- Card Body -->
+                                <div class="card-body">
+                                    <div class="chart-area">
+                                        <input id="buttonloadIRchart" type="button" onclick="loadChart()" value="Update graph">
+                                        <div id="IRstatus"></div>
+                                        <div id="IRchart_div" style="width:100%"></div>
+                                    </div>
+                                </div>
+                                <!-- Card Body -->
+                                <div class="card-body">
+                                    <div class="chart-area">
+                                        <div id="IRtable_div" style="width:100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+            </div>
+            <!-- End of Main Content -->
+
+            <!-- Footer -->
+            <footer class="sticky-footer bg-white">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto">
+                        <span>Copyright &copy; Wong Yui Yang 2020</span>
+                    </div>
+                </div>
+            </footer>
+            <!-- End of Footer -->
+
+        </div>
+        <!-- End of Content Wrapper -->
+
+    </div>
+    <!-- End of Page Wrapper -->
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+
+    <!-- Logout Modal-->
+    <div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Ready to Leave?</h5>
+                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">Select "Logout" below if you are ready to end your current session.</div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
+                    <a class="btn btn-primary" href="login.html">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap core JavaScript-->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Core plugin JavaScript-->
+    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+
+    <!-- Custom scripts for all pages-->
+    <script src="js/sb-admin-2.min.js"></script>
+
+    <!-- Page level plugins -->
+    <script src="vendor/chart.js/Chart.min.js"></script>
+
+    <!-- Page level custom scripts -->
+    <script src="js/demo/chart-area-demo.js"></script>
+    <script src="js/demo/chart-pie-demo.js"></script>
+
+</body>
+
+</html>
