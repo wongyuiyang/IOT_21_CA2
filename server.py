@@ -397,8 +397,8 @@ def CaptureImage():
     datetime_now = datetime.datetime.now()
     capture_name = "image{}.jpg".format(datetime_now.strftime("%Y-%m-%d_%H:%M:%S"))
     #Capture image and name it the current datetime
-    camera.capture('/home/pi/labs/CA1/static/picam/'+capture_name)
-    camera_dict = {'image': "/static/picam/"+capture_name, 'message': "Image captured to /home/pi/labs/CA1/static/picam/"+capture_name}
+    camera.capture('/home/pi/labs/CA2/static/picam/'+capture_name)
+    camera_dict = {'image': "/static/picam/"+capture_name, 'message': "Image captured to /home/pi/labs/CA2/static/picam/"+capture_name}
     return jsonify(camera_dict)
 
 @app.route("/writeCamera/<status>")
