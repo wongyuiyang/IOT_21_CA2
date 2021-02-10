@@ -23,6 +23,27 @@ import gevent.monkey
 from gevent.pywsgi import WSGIServer
 import telepot
 
+#AWS imports
+from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
+import boto3
+from boto3.dynamodb.conditions import Key, Attr
+import botocore
+#Create an S3 resource
+s3 = boto3.resource('s3')
+#Set the bucket name
+bucket = 'sp-p1827976-s3-bucket'
+exists = True
+try:
+    s3.meta.client.head_bucket(Bucket=bucket)
+except botocore.exceptions.ClientError as e:
+    error_code = int(e.response['Error']['Code'])
+    if error_code == 404:
+        exists = False
+if exists == False:
+  s3.create_bucket(Bucket=bucket,CreateBucketConfiguration={'LocationConstraint': 'us-east-1'})
+#Set dynamoDB
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
 gevent.monkey.patch_all()
 
 class GenericEncoder(json.JSONEncoder):  
@@ -38,40 +59,20 @@ class GenericEncoder(json.JSONEncoder):
 
 def data_to_json(data):
     json_data = json.dumps(data,cls=GenericEncoder)
-    return json_data
-
-def connect_to_mysql(host,user,password,database):
-    try:
-        cnx = mysql.connector.connect(host=host,user=user,password=password,database=database)
-        cursor = cnx.cursor()
-        print("Successfully connected to database!")
-        return cnx,cursor
-    except:
-        print(sys.exc_info()[0])
-        print(sys.exc_info()[1])
-        return None
-
-def fetch_fromdb_as_json(cnx,cursor,sql):
-    try:
-        cursor.execute(sql)
-        row_headers=[x[0] for x in cursor.description] 
-        results = cursor.fetchall()
-        data = []
-        for result in results:
-            data.append(dict(zip(row_headers,result)))
-
-        data_reversed = data[::-1]
-        data = {'data':data_reversed}
-        return data_to_json(data)
-    except:
-        print(sys.exc_info()[0])
-        print(sys.exc_info()[1])
-        return None
-                            
+    return json_data        
 
 app = Flask(__name__)
 
-session = {'loggedin':False, 'id':0, 'username':'placeholder'}
+#Pickle
+#Flags by default set all functions to offline
+flags_dict = {'ledFlag': 3, 'pumpFlag': 2}
+filename = 'flags'
+f = open(filename, 'wb')
+pickle.dump(flags_dict, f)
+f.close()
+
+#Set User Session
+session = {'loggedin':False, 'username':'placeholder'}
 
 @app.route("/")
 def chartsimple():
@@ -88,22 +89,26 @@ def login():
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
         username = request.form['username']
         password = request.form['password']
-        sql="SELECT * FROM users WHERE name = %s AND password = %s"
-        cnx = mysql.connector.connect(host='localhost',user='assignmentuser',password='admin',database='assignmentdatabase')
-        cursor = cnx.cursor()
-        cursor.execute(sql, (username, password))
-        account = cursor.fetchone()
+
+        #Connect with DynamoDB
+        #Get entire list of users
+        table = dynamodb.Table('Users')
+        response = table.query(
+            KeyConditionExpression=Key('deviceid').eq('deviceid_wongyuiyang'),
+            ScanIndexForward=False
+        )
+        items = response['Items']
         #Check if account exist
-        if account:
-            #Create session data
-            session['loggedin'] = True
-            session['id'] = account[0]
-            session['username'] = account[1]
-            print("Current session is as user "+session['username'])
-            # Redirect to home page
-            return 'Logged in successfully! Returning to home page in 5 seconds... <meta http-equiv="refresh" content="5; url = /"/>'
-        else:
-            return 'Incorrect username/password! Returning to login page in 5 seconds... <meta http-equiv="refresh" content="5; url = /login"/>'
+        for i in items:
+            if i['name'] == username and i['password'] == password:
+                #Create session data
+                session['loggedin'] = True
+                session['username'] = username
+                print("Current session is as user "+session['username'])
+                # Redirect to home page
+                return 'Logged in successfully! Returning to home page in 5 seconds... <meta http-equiv="refresh" content="5; url = /"/>'
+        #Else display 'Incorrect' and return to login.html
+        return 'Incorrect username/password! Returning to login page in 5 seconds... <meta http-equiv="refresh" content="5; url = /login"/>'
     return render_template('login.html')
 
 @app.route("/register", methods=['GET', 'POST'])
@@ -112,35 +117,33 @@ def register():
         username = request.form['username']
         password = request.form['password']
         email = request.form['email']
-        sql="SELECT * FROM users WHERE name = '"+str(username)+"'"
-        sql2="SELECT * FROM users WHERE email = '"+str(email)+"'"
-        cnx = mysql.connector.connect(host='localhost',user='assignmentuser',password='admin',database='assignmentdatabase')
-        cursor = cnx.cursor()
-        cursor.execute(sql)
-        account = cursor.fetchone()
-        cursor.execute(sql2)
-        account2 = cursor.fetchone()
+        account = False
+        account2 = False
+        
+        #Connect with DynamoDB
+        #Get entire list of users
+        table = dynamodb.Table('Users')
+        response = table.query(
+            KeyConditionExpression=Key('deviceid').eq('deviceid_wongyuiyang'),
+            ScanIndexForward=False
+        )
+        items = response['Items']
+        for i in items:
+            if i['name'] == username:
+                account = True
+            if i['email'] == email:
+                account2 = True
         #Does account username already exist?
-        if account:
+        if account == True:
             return 'Username taken, please choose another username! Returning to register page in 5 seconds... <meta http-equiv="refresh" content="5; url = /register"/>'
         #Does email already exist?
-        elif account2:
+        elif account2 == True:
             return 'Email already registered, please choose another email! Returning to register page in 5 seconds... <meta http-equiv="refresh" content="5; url = /register"/>'
         else:
             #Add new account
-            sql = "INSERT INTO users VALUES (NULL, %s, %s, %s)"
-            cursor.execute(sql, (username, password, email))
-            cnx.commit()
+            table.put_item(Item={'deviceid':'deviceid_wongyuiyang', 'name':username, 'email':email, 'password':password})
             return 'New account added! Returning to login page in 5 seconds... <meta http-equiv="refresh" content="5; url = /login"/>'
     return render_template('register.html')
-
-#Pickle
-#Flags by default set all functions to offline
-flags_dict = {'ledFlag': 3, 'pumpFlag': 2}
-filename = 'flags'
-f = open(filename, 'wb')
-pickle.dump(flags_dict, f)
-f.close()
 
 #DHT function
 pin = 4
@@ -149,12 +152,20 @@ pin = 4
 def apidata_getdata():
     if request.method == 'POST':
         try:
-            host='localhost'; user='assignmentuser'; password='admin'; database='assignmentdatabase'
-            sql="SELECT * FROM DHT ORDER BY datetimeinfo DESC LIMIT 10"
-            cnx,cursor = connect_to_mysql(host,user,password,database)
-            json_data = fetch_fromdb_as_json(cnx,cursor,sql)
-            loaded_r = json.loads(json_data)
-            data = {'chart_data': loaded_r, 'title': "IOT Data"}
+            #Connect with DynamoDB
+            table = dynamodb.Table('DHT')
+            now = datetime.datetime.now()
+            startdate = now.strftime("%Y-%m")
+            response = table.query(
+                KeyConditionExpression=Key('deviceid').eq('deviceid_wongyuiyang') & Key('datetimeid').begins_with(startdate),
+                ScanIndexForward=False
+            )
+            items = response['Items']
+            n=10 # limit to last 10 items
+            db_data = items[:n]
+            data_reversed = db_data[::-1]
+            data = {'chart_data': data_to_json(data_reversed), 'title': "IOT Data"}
+            print(data)
             return jsonify(data)
         except:
             print(sys.exc_info()[0])
@@ -174,19 +185,26 @@ def getCurrentDHT():
 def getHighestDHT():
     if request.method == 'POST':
         try:
-            #Get current date in YYYY-MM-DD format
-            datetime_now = datetime.datetime.now()
-            datetime_YMD = datetime_now.strftime("%Y-%m-%d")
-            #Match datetime_YMD with YYYY-MM-DD% stored in datetimeinfo
-            sql="SELECT MAX(temperature) as temperature, MAX(humidity) as humidity FROM DHT WHERE datetimeinfo LIKE '"+datetime_YMD+"%'"
-            cnx = mysql.connector.connect(host='localhost',user='assignmentuser',password='admin',database='assignmentdatabase')
-            cursor = cnx.cursor()
-            cursor.execute(sql) 
-            results = cursor.fetchone()
-            #print(results)
-            temperature = int(results[0])
-            humidity = int(results[1])
-            data = {'temperature': temperature, 'humidity': humidity}
+            #Connect with DynamoDB
+            table = dynamodb.Table('DHT')
+            now = datetime.datetime.now()
+            startdate = now.strftime("%Y-%m-%d")
+            #Get all values for today
+            response = table.query(
+                KeyConditionExpression=Key('deviceid').eq('deviceid_wongyuiyang') & Key('datetimeid').begins_with(startdate),
+                ScanIndexForward=False
+            )
+            items = response['Items']
+            humidity = 0
+            temperature = 0
+            #Get highest values
+            for i in items:
+                if i['humidity'] >= humidity:
+                    humidity = i['humidity']
+                if i['temperature'] >= temperature:
+                    temperature = i['temperature']
+            data = {'temperature': int(temperature), 'humidity': int(humidity)}
+            #print(data)
             return jsonify(data)
         except:
             print(sys.exc_info()[0])
@@ -286,26 +304,33 @@ def TVPower():
         return "TV Power Off"
 
 def TVMonitor(hours):
-    current_date = datetime.date.today()
     try:
-        #Check current date
-        sql="SELECT * FROM IRUsage WHERE dateinfo LIKE '"+str(current_date)+"'"
-        cnx = mysql.connector.connect(host='localhost',user='assignmentuser',password='admin',database='assignmentdatabase')
-        cursor = cnx.cursor()
-        cursor.execute(sql)
-        results = cursor.fetchall()
-        #Check if list is empty
-        if not results:
-            sql = "INSERT INTO IRUsage (dateinfo, TVHours) VALUES (%(v1)s, %(v2)s)"
-            cursor.execute(sql, {'v1':str(current_date), 'v2':hours})
-            cnx.commit()
-            print(str(current_date)+" record added to database!")
+        #Connect with DynamoDB
+        table = dynamodb.Table('IRUsage')
+        now = datetime.datetime.now()
+        startdate = now.strftime("%Y-%m-%d")
+        #Get IRUsage for today
+        response = table.query(
+            KeyConditionExpression=Key('deviceid').eq('deviceid_wongyuiyang') & Key('datetimeid').eq(startdate),
+            ScanIndexForward=False
+        )
+        items = response['Items']
+        
+        #Check if items list is empty
+        if not items:
+            #Add TVHours
+            table.put_item(Item={'deviceid':'deviceid_wongyuiyang', 'datetimeid':startdate, 'TVHours':str(hours), 'FanHours':str(0)})
+            print(str(startdate)+" record added to database!")
         #Else, append new hours
         else:
-            sql = "UPDATE IRUsage SET TVHours = TVHours+"+str(hours)+" WHERE dateinfo LIKE '"+str(current_date)+"'"
-            cursor.execute(sql)
-            cnx.commit()
-            print("Database for TV record updated!")
+            #Update TVHours
+            table.update_item(
+                Key={'deviceid':'deviceid_wongyuiyang', 'datetimeid':startdate},
+                UpdateExpression="set TVHours=:r",
+                ExpressionAttributeValues={
+                ':r':str(float(items[0]['TVHours']) + hours)
+            })
+            print(str(startdate)+" record updated!")
     except:
         print(sys.exc_info()[0])
         print(sys.exc_info()[1])
@@ -345,26 +370,33 @@ def FanPower():
         return "FAN Power Off"
 
 def FanMonitor(hours):
-    current_date = datetime.date.today()
     try:
-        #Check current date
-        sql="SELECT * FROM IRUsage WHERE dateinfo LIKE '"+str(current_date)+"'"
-        cnx = mysql.connector.connect(host='localhost',user='assignmentuser',password='admin',database='assignmentdatabase')
-        cursor = cnx.cursor()
-        cursor.execute(sql)
-        results = cursor.fetchall()
+        #Connect with DynamoDB
+        table = dynamodb.Table('IRUsage')
+        now = datetime.datetime.now()
+        startdate = now.strftime("%Y-%m-%d")
+        #Get IRUsage for today
+        response = table.query(
+            KeyConditionExpression=Key('deviceid').eq('deviceid_wongyuiyang') & Key('datetimeid').eq(startdate),
+            ScanIndexForward=False
+        )
+        items = response['Items']
+        
         #Check if list is empty
-        if not results:
-            sql = "INSERT INTO IRUsage (dateinfo, FanHours) VALUES (%(v1)s, %(v2)s)"
-            cursor.execute(sql, {'v1':str(current_date), 'v2':hours})
-            cnx.commit()
-            print(str(current_date)+" record added to database!")
+        if not items:
+            #Add FanHours
+            table.put_item(Item={'deviceid':'deviceid_wongyuiyang', 'datetimeid':startdate, 'TVHours':str(0), 'FanHours':str(hours)})
+            print(str(startdate)+" record added to database!")
         #Else, append new hours
         else:
-            sql = "UPDATE IRUsage SET FanHours = FanHours+"+str(hours)+" WHERE dateinfo LIKE '"+str(current_date)+"'"
-            cursor.execute(sql)
-            cnx.commit()
-            print("Database for Fan record updated!")
+            #Update FanHours
+            table.update_item(
+                Key={'deviceid':'deviceid_wongyuiyang', 'datetimeid':startdate},
+                UpdateExpression="set FanHours=:r",
+                ExpressionAttributeValues={
+                ':r':str(float(items[0]['FanHours']) + hours)
+            })
+            print(str(startdate)+" record updated!")
     except:
         print(sys.exc_info()[0])
         print(sys.exc_info()[1])
@@ -379,26 +411,119 @@ def writeFan():
 def apidata_getIRdata():
     if request.method == 'POST':
         try:
-            host='localhost'; user='assignmentuser'; password='admin'; database='assignmentdatabase'
-            sql="SELECT * FROM IRUsage ORDER BY dateinfo DESC LIMIT 10"
-            cnx,cursor = connect_to_mysql(host,user,password,database)
-            json_data = fetch_fromdb_as_json(cnx,cursor,sql)
-            loaded_r = json.loads(json_data)
-            data = {'chart_data': loaded_r, 'title': "IRUsage Data"}
+            #Connect with DynamoDB
+            table = dynamodb.Table('IRUsage')
+            now = datetime.datetime.now()
+            startdate = now.strftime("%Y-%m-%d")
+            response = table.query(
+                KeyConditionExpression=Key('deviceid').eq('deviceid_wongyuiyang') & Key('datetimeid').eq(startdate),
+                ScanIndexForward=False
+            )
+            items = response['Items']
+            #Change str values to float
+            for i in items:
+                i['FanHours'] = float(items[0]['FanHours'])
+                i['TVHours'] = float(items[0]['TVHours'])
+            
+            n=10 # limit to last 10 items
+            db_data = items[:n]
+            data_reversed = db_data[::-1]
+            data = {'chart_data': data_to_json(data_reversed), 'title': "IRUsage Data"}
+            print(data)
             return jsonify(data)
         except:
             print(sys.exc_info()[0])
             print(sys.exc_info()[1])
 
-#Picam Function
+#AWS Picam Function
 camera = PiCamera()
 
+#Rekognition
+def detect_labels(bucket, key, max_labels=10, min_confidence=90, region="us-east-1"):
+	rekognition = boto3.client("rekognition", region)
+	response = rekognition.detect_labels(
+		Image={
+			"S3Object": {
+				"Bucket": bucket,
+				"Name": key,
+			}
+		},
+		MaxLabels=max_labels,
+		MinConfidence=min_confidence,
+	)
+	return response['Labels']
+
+def detect_faces(bucket, key, max_labels=10, min_confidence=90, region="us-east-1"):
+	rekognition = boto3.client("rekognition", region)
+	response = rekognition.detect_faces(
+		Image={
+			"S3Object": {
+				"Bucket": bucket,
+				"Name": key,
+			}
+		},
+		Attributes=['ALL']
+	)
+	return response['FaceDetails']
+
 def CaptureImage():
+    global bucket
+    highestconfidence = 0
     datetime_now = datetime.datetime.now()
     capture_name = "image{}.jpg".format(datetime_now.strftime("%Y-%m-%d_%H:%M:%S"))
-    #Capture image and name it the current datetime
-    camera.capture('/home/pi/labs/CA2/static/picam/'+capture_name)
-    camera_dict = {'image': "/static/picam/"+capture_name, 'message': "Image captured to /home/pi/labs/CA2/static/picam/"+capture_name}
+    #Capture image and name it the current datetime, temporarily store it
+    camera.capture('/home/pi/Desktop/'+capture_name)
+    #Upload image to AWS s3 bucket
+    s3.Object(bucket, capture_name).put(Body=open('/home/pi/Desktop/'+capture_name, 'rb'))
+    #AWS rekognition for objects
+    obj_rek_str = 'Object Recognition Results:<br>'
+    #Check if there are any results in detect_labels
+    if detect_labels(bucket, capture_name):
+        for label in detect_labels(bucket, capture_name):
+            obj_rek_str += "{Name} - {Confidence}%<br>".format(**label)
+            if label["Confidence"] >= highestconfidence:
+                highestconfidence = label["Confidence"]
+                best_bet_item = label["Name"]     
+        
+        #Round highestconfidence into 3 decimal points
+        highestconfidence = round(highestconfidence,3)
+        obj_rek_str += "This should be a {} with confidence {}%".format(best_bet_item, highestconfidence)
+    else:
+        obj_rek_str += 'No objects detected.'
+    #AWS rekognition for faces
+    face_rek_str = 'Face Recognition Results:<br>'
+    #Check if there are any results in detect_faces
+    if detect_faces(bucket, capture_name):
+        for faceDetail in detect_faces(bucket, capture_name):
+            #Get age range
+            ageLow = faceDetail['AgeRange']['Low']
+            ageHigh = faceDetail['AgeRange']['High']
+            face_rek_str += 'Age between {} and {} years old<br>'.format(ageLow, ageHigh)
+            face_rek_str += 'Here are the other attributes:<br>'
+            emotion_confidence = 0
+            emotion_type = ''
+            
+            #Get the emotion with highest confidence
+            for i in faceDetail['Emotions']:
+                if i['Confidence'] >= emotion_confidence:
+                    emotion_confidence = i['Confidence']
+                    emotion_type = i['Type']
+            #Round emotion_confidence to 3 decimal points
+            emotion_confidence = round(emotion_confidence,3)
+            face_rek_str += 'Emotion should be {} with confidence {}%<br>'.format(emotion_type, emotion_confidence)
+            
+            #Get the gender
+            gender_value = faceDetail['Gender']['Value']
+            gender_confidence = faceDetail['Gender']['Confidence']
+            #Round gender_confidence to 3 decimal points
+            gender_confidence = round(gender_confidence,3)
+            face_rek_str += 'Gender should be {} with confidence {}%'.format(gender_value, gender_confidence)
+    else:
+        face_rek_str += 'No faces detected.'
+    #Delete image from raspberry pi
+    os.remove('/home/pi/Desktop/'+capture_name)
+    #Prepare camera_dict for html
+    camera_dict = {'image': "https://sp-p1827976-s3-bucket.s3.amazonaws.com/"+capture_name, 'message': "Image captured to https://sp-p1827976-s3-bucket.s3.amazonaws.com/"+capture_name, 'message2': obj_rek_str, 'message3': face_rek_str}
     return jsonify(camera_dict)
 
 @app.route("/writeCamera/<status>")
@@ -432,6 +557,7 @@ def respondToMsg(msg):
 bot.message_loop(respondToMsg)
 print('Listening for RPi commands...')
 
+#Main
 if __name__ == '__main__':
     try:
         print('Server waiting for requests')

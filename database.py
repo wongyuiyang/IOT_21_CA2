@@ -5,6 +5,7 @@ import datetime
 from time import sleep
 import threading
 import pickle
+import json
 
 #Web and Server imports
 import telepot
@@ -23,7 +24,7 @@ from gpiozero import MCP3008
 
 from flask import Flask, request, Response, render_template
 
-#Amazon SDK imports
+#AWS imports
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 
 GPIO.setwarnings(False)
@@ -45,13 +46,35 @@ adc = MCP3008(channel=0)
 
 #Database
 try:
-    u = 'assignmentuser'
-    pw = 'admin'
-    h = 'localhost'
-    db = 'assignmentdatabase'
-    cnx = mysql.connector.connect(user=u, password=pw, host=h, database=db)
-    cursor = cnx.cursor()
-    print("Successfully connected to database!")
+    #AWS functions - Connect device to AWS
+    #Custom MQTT message callback
+    def customCallback(client, userdata, message):
+        print("--------------")
+        print("Received a new message: ")
+        print(message.payload)
+        print("From topic: ")
+        print(message.topic)
+        print("--------------")
+    
+    host = "a3st2xvjc2igm0-ats.iot.us-east-1.amazonaws.com"
+    rootCAPath = "rootca.pem"
+    certificatePath = "certificate.pem.crt"
+    privateKeyPath = "private.pem.key"
+
+    my_rpi = AWSIoTMQTTClient("PubSub-p1827976") #Endpoint
+    my_rpi.configureEndpoint(host, 8883) #Standard port number for MQTT - 8883,...
+    my_rpi.configureCredentials(rootCAPath, privateKeyPath, certificatePath)
+
+    my_rpi.configureOfflinePublishQueueing(-1)  # Infinite offline Publish queueing
+    my_rpi.configureDrainingFrequency(2)  # Draining: 2 Hz
+    my_rpi.configureConnectDisconnectTimeout(10)  # 10 sec
+    my_rpi.configureMQTTOperationTimeout(5)  # 5 sec
+
+    #Connect and subscribe to AWS IoT
+    my_rpi.connect()
+    my_rpi.subscribe("sensors/#", 1, customCallback)
+    print("Connected to AWS!")
+    sleep(2)
 
     #Set a main update flag to break all loops and threads
     update = True
@@ -63,35 +86,6 @@ try:
     #Telegram bot token
     my_bot_token = '1415384651:AAFnfPFrEF5e_pAL42U-YHKh6Ij10gASGW0'
     bot = telepot.Bot(my_bot_token)
-    
-    #AWS functions
-    #Custom MQTT message callback
-    def customCallback(client, userdata, message):
-        print("--------------")
-        print("Received a new message: ")
-        print(message.payload)
-        print("from topic: ")
-        print(message.topic)
-        print("--------------")
-    
-    host = "a3st2xvjc2igm0-ats.iot.us-east-1.amazonaws.com"
-    rootCAPath = "rootca.pem"
-    certificatePath = "certificate.pem.crt"
-    privateKeyPath = "private.pem.key"
-
-    my_rpi = AWSIoTMQTTClient("PubSub-p1827976")
-    my_rpi.configureEndpoint(host, 8883)
-    my_rpi.configureCredentials(rootCAPath, privateKeyPath, certificatePath)
-
-    my_rpi.configureOfflinePublishQueueing(-1)  # Infinite offline Publish queueing
-    my_rpi.configureDrainingFrequency(2)  # Draining: 2 Hz
-    my_rpi.configureConnectDisconnectTimeout(10)  # 10 sec
-    my_rpi.configureMQTTOperationTimeout(5)  # 5 sec
-
-    #Connect and subscribe to AWS IoT
-    my_rpi.connect()
-    my_rpi.subscribe("sensors/light", 1, customCallback)
-    sleep(2)
 
     while update:
         try:
@@ -102,8 +96,8 @@ try:
 
             #DHT Process
             #Dummy values
-            #dummy_temperature = random.randint(20,40)
-            #dummy_humidity = random.randint(20,90)
+            dummy_temperature = random.randint(20,40)
+            dummy_humidity = random.randint(20,90)
             #DHT values
             humidity, temperature = Adafruit_DHT.read_retry(11, DHT_pin)
             #Fix humidity >100% error
@@ -112,23 +106,23 @@ try:
             #Print
             print('Temp:{:.1f}C'.format(temperature))
             print('Humidity:{:.1f}%'.format(humidity))
-            #SQL
-            sql = "INSERT INTO DHT (humidity, temperature) VALUES (%(v1)s, %(v2)s)"
-            cursor.execute(sql, {'v1':humidity, 'v2':temperature})
-            cnx.commit()
-            #Monitor Temperature. If temperature > 30, alert
-            #if dummy_temperature > 30:
-            #print('Alert! Temperature > 30 C!')
+            #AWS - Publish DHT values to DynamoDB table DHT
+            message = {}
+            message["deviceid"] = "deviceid_wongyuiyang"
+            DHT_datetime_now = datetime.datetime.now()
+            message["datetimeid"] = DHT_datetime_now.strftime("%Y-%m-%d %H:%M:%S")
+            print(DHT_datetime_now.isoformat())
+            message["humidity"] = dummy_humidity
+            message["temperature"] = dummy_temperature
+            my_rpi.publish("sensors/DHT", json.dumps(message), 1)
             sleep(1)
             
             #LED Process
             #Get local time in 24 hour format
             datetime_now = datetime.datetime.now()
             datetime_hour = int(datetime_now.strftime("%H"))
-
             #Publish light levels to the sensors/light topic
-            my_rpi.publish("sensors/light", str(adc.value), 1)
-            
+            #my_rpi.publish("sensors/light", str(adc.value), 1)
             #LED turns on if 'sunlight' low (> 0.2)
             if flags_dict['ledFlag'] == 1: #LED Light Sensor
                 if adc.value > 0.2:
@@ -175,8 +169,6 @@ try:
                 GPIO.output(23, GPIO.HIGH)
             sleep(1)
 
-        except mysql.connector.Error as err:
-            print(err)
         except KeyboardInterrupt:
             update = False
             cursor.close()
