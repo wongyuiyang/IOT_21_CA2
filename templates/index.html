@@ -43,10 +43,13 @@
             jQuery.ajax({
                 url: "/api/getdata",
                 type: 'POST',
+                error: function(jqXHR,textStatus, errorThrown ){
+                     console.log("Error while ajax:" + textStatus)
+                },
                 success: function(ndata, textStatus, xhr){
-                    console.log(ndata.chart_data.data)
+                    console.log(ndata.chart_data)
                     $("#DHTstatus").html("Data fetched! Now plotting graph!");
-                    chartdata = ndata.chart_data.data
+                    chartdata = ndata.chart_data
                     graphdata = createDataTable(chartdata)
                     drawLineChart(graphdata)
                     drawDataTable(graphdata)
@@ -60,8 +63,9 @@
             graphdata.addColumn('string', 'Time');
             graphdata.addColumn('number', 'Humidity (Blue)');
             graphdata.addColumn('number', 'Temperature (Red)')
-            for (i in newdata) {
-                datetime = newdata[i].datetimeinfo;
+            var newdata = JSON.parse(newdata);
+            for (i=0;i<newdata.length;i++){ //Important
+                datetime = newdata[i].datetimeid;
                 jsdatetime = new Date(Date.parse(datetime));
                 jstime = jsdatetime.toLocaleTimeString();
                 humidity = {v:newdata[i].humidity, f:newdata[i].humidity + '%'};
@@ -234,9 +238,9 @@
                 url: "/api/getIRdata",
                 type: 'POST',
                 success: function(ndata, textStatus, xhr){
-                    console.log(ndata.chart_data.data)
+                    console.log(ndata.chart_data)
                     $("#IRstatus").html("Data fetched! Now plotting graph!");
-                    chartdata = ndata.chart_data.data
+                    chartdata = ndata.chart_data
                     graphdata = createIRDataTable(chartdata)
                     drawIRColumnChart(graphdata)
                     drawIRDataTable(graphdata)
@@ -249,11 +253,10 @@
             graphdata = new google.visualization.DataTable();
             graphdata.addColumn('string', 'Date');
             graphdata.addColumn('number', 'TV usage');
-            graphdata.addColumn('number', 'Fan usage')
-            for (i in newdata) {
-                date = newdata[i].dateinfo;
-                //jsdate = new Date(Date.parse(date));
-                //jsdatestring = jsdate.toLocaleTimeString();
+            graphdata.addColumn('number', 'Fan usage');
+            var newdata = JSON.parse(newdata);
+            for (i=0;i<newdata.length;i++){
+                date = newdata[i].datetimeid;
                 TVHours = {v:newdata[i].TVHours, f:newdata[i].TVHours + 'hours'};
                 FanHours = {v:newdata[i].FanHours, f:newdata[i].FanHours + 'hours'};
                 graphdata.addRows([[date,TVHours,FanHours]]);
@@ -290,6 +293,8 @@
                         $("#Camerastatus").html(ndata.message);
                         Cameraimgsrc = ndata.image
                         document.getElementById('Camerasource').innerHTML = '<img src="' + Cameraimgsrc + '" width="300" height="200">';
+                        $("#Obj_Rekognition").html(ndata.message2);
+                        $("#Face_Rekognition").html(ndata.message3);
                 }
             })
         }
@@ -437,7 +442,7 @@
 
                     <div class="row">
 
-                        <!-- Area Chart -->
+                        <!-- Area Charts -->
                         <div class="col-xl-8 col-lg-7">
                             <div class="card shadow mb-4">
                                 <!-- Card Header - Dropdown -->
@@ -461,26 +466,7 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Picam -->
-                        <div class="col-xl-4 col-lg-5">
-                            <div class="card shadow mb-4">
-                                <!-- Card Header - Dropdown -->
-                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                                    <div><h6 class="m-0 font-weight-bold text-primary">Picam</h6></div>
-                                </div>
-                                <!-- Card Body -->
-                                <div class="card-body">
-                                    <button id="Camerab1">Capture Image</button><br>
-                                    <span id="Camerastatus"></span><br>
-                                    <div id="Camerasource"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Area Chart -->
-                        <div class="col-xl-8 col-lg-7">
                             <div class="card shadow mb-4">
                                 <!-- Card Header - Dropdown -->
                                 <div
@@ -501,6 +487,24 @@
                                     <div class="chart-area">
                                         <div id="IRtable_div" style="width:100%"></div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Picam -->
+                        <div class="col-xl-4 col-lg-5">
+                            <div class="card shadow mb-4">
+                                <!-- Card Header - Dropdown -->
+                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <div><h6 class="m-0 font-weight-bold text-primary">Picam</h6></div>
+                                </div>
+                                <!-- Card Body -->
+                                <div class="card-body">
+                                    <button id="Camerab1">Capture Image</button><br>
+                                    <span id="Camerastatus"></span><br>
+                                    <div id="Camerasource"></div>
+                                    <span id="Obj_Rekognition"></span><br><br>
+                                    <span id="Face_Rekognition"></span><br>
                                 </div>
                             </div>
                         </div>
