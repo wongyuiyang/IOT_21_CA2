@@ -96,8 +96,8 @@ try:
 
             #DHT Process
             #Dummy values
-            dummy_temperature = random.randint(20,40)
-            dummy_humidity = random.randint(20,90)
+            #dummy_temperature = random.randint(20,40)
+            #dummy_humidity = random.randint(20,90)
             #DHT values
             humidity, temperature = Adafruit_DHT.read_retry(11, DHT_pin)
             #Fix humidity >100% error
@@ -112,8 +112,8 @@ try:
             DHT_datetime_now = datetime.datetime.now()
             message["datetimeid"] = DHT_datetime_now.strftime("%Y-%m-%d %H:%M:%S")
             print(DHT_datetime_now.isoformat())
-            message["humidity"] = dummy_humidity
-            message["temperature"] = dummy_temperature
+            message["humidity"] = humidity
+            message["temperature"] = temperature
             my_rpi.publish("sensors/DHT", json.dumps(message), 1)
             sleep(1)
             
