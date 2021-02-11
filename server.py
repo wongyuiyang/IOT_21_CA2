@@ -165,7 +165,7 @@ def apidata_getdata():
             db_data = items[:n]
             data_reversed = db_data[::-1]
             data = {'chart_data': data_to_json(data_reversed), 'title': "IOT Data"}
-            print(data)
+            #print(data)
             return jsonify(data)
         except:
             print(sys.exc_info()[0])
@@ -414,22 +414,21 @@ def apidata_getIRdata():
             #Connect with DynamoDB
             table = dynamodb.Table('IRUsage')
             now = datetime.datetime.now()
-            startdate = now.strftime("%Y-%m-%d")
+            startdate = now.strftime("%Y-%m")
             response = table.query(
-                KeyConditionExpression=Key('deviceid').eq('deviceid_wongyuiyang') & Key('datetimeid').eq(startdate),
+                KeyConditionExpression=Key('deviceid').eq('deviceid_wongyuiyang') & Key('datetimeid').begins_with(startdate),
                 ScanIndexForward=False
             )
             items = response['Items']
             #Change str values to float
             for i in items:
-                i['FanHours'] = float(items[0]['FanHours'])
-                i['TVHours'] = float(items[0]['TVHours'])
+                i['FanHours'] = float(i['FanHours'])
+                i['TVHours'] = float(i['TVHours'])
             
             n=10 # limit to last 10 items
             db_data = items[:n]
             data_reversed = db_data[::-1]
             data = {'chart_data': data_to_json(data_reversed), 'title': "IRUsage Data"}
-            print(data)
             return jsonify(data)
         except:
             print(sys.exc_info()[0])
