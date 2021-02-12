@@ -10,6 +10,8 @@ The third feature is capturing an image and performing object and facial recogni
 
 One intermediate bonus feature I coded is displaying images from the AWS S3 bucket. Normally, images within an AWS S3 bucket cannot be displayed unless they are publicly available and the user has a key to view them. As shown in the video, the permissions of the bucket has been set to public. However, this is not enough. To access the image without a key, the bucket's policy must be configured like this. This allows the web interface to display the captured image using this link, which is the link of the latest image captured.
 
+With that, we have finished demonstrating all the features of Our Smart-Room App.
+
 ## ST0324 : INTERNET OF THINGS
 ## DIPLOMA IN INFOCOMM SECURITY MANAGEMENT (DISM)
 # IOT 21 CA2 step-by-step tutorial
