@@ -25,6 +25,7 @@ Our Smart-Room app is also compatible with a Telegram bot. The Telegram bot allo
 
 ## How the final RPI Set-up looks like
 
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/images/F1.jpg?raw=true)
 Figure 1
 
 Figure 2
