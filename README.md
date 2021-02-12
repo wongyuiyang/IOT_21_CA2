@@ -23,6 +23,16 @@ Our Smart-Room app can be used to power on and off devices within the room if th
 
 Our Smart-Room app is also compatible with a Telegram bot. The Telegram bot allows the user to manage LED settings and turn their room devices on and off using the infrared transmitter. It will also notify the user if the water pump's bottle is empty and requires refilling.
 
+## How the final RPI Set-up looks like
+
+Figure 1
+
+Figure 2
+
+Figure 3
+
+Figure 4
+
 # 2 Hardware Requirements
 1.	One DHT sensor
 2.	One LED
