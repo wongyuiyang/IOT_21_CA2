@@ -28,10 +28,13 @@ Our Smart-Room app is also compatible with a Telegram bot. The Telegram bot allo
 ![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F1.jpg?raw=true)
 Figure 1
 
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F2.jpg?raw=true)
 Figure 2
 
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F3.jpg?raw=true)
 Figure 3
 
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F4.jpg?raw=true)
 Figure 4
 
 # 2 Hardware Requirements
