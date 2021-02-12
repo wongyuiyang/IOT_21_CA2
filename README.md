@@ -1,3 +1,14 @@
+# RYAN SCRIPT
+(R)
+Hi, my name is Ryan and I will demonstrate the parts of the app that I coded.
+The first feature is monitoring the room's humidity and temperature levels using a DHT sensor. On the web interface, the app will display the current and highest humidity and temperature levels for today. The app will also display a real-time graph using data that is stored in a DynamoDB table called DHT.
+
+The second feature is an LED that can be set to three different states. The first state is a light-based state that is dependant on the LDR. When the LDR records low light levels, the LED will turn on. When light levels are high, the LED will turn off. The second state is a time-based state. As shown on the web interface, the LED will turn on between 11AM-6PM to simulate a natural day-night cycle. The third state is having the LED completely turned off.
+
+The third feature is capturing an image and performing object and facial recognition. To capture an image, the user first clicks on the 'Capture Image' button on the web interface. After the Picam takes a picture, the app proceeds to store it in an Amazon S3 bucket. The image is then processed through Amazon Rekognition before the results are displayed onto the web interface.
+
+One bonus feature I coded is displaying images from the AWS S3 bucket. Normally, images within an AWS S3 bucket cannot be displayed unless they are publicly available and the user has a key to view them. To solve this issue, the bucket has been configured to allow links of images to be seen without needing a key. The configurations are shown in the video. This allows the web interface to display the captured image.
+
 ## ST0324 : INTERNET OF THINGS
 ## DIPLOMA IN INFOCOMM SECURITY MANAGEMENT (DISM)
 # IOT 21 CA2 step-by-step tutorial
