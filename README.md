@@ -1,4 +1,6 @@
 # RYAN SCRIPT
+My name is Ryan, the second member of our group. Now that you know our names, let us introduce you to our project.
+
 Hi, my name is Ryan and I will demonstrate the parts of the app that I coded.
 The first feature is monitoring the room's humidity and temperature levels using a DHT sensor. Over here is the DHT sensor. On the web interface, the app will display the current and highest humidity and temperature levels for today. The app will also display a real-time graph using data that is stored in a DynamoDB table called DHT.
 
