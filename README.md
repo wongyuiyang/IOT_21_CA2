@@ -26,19 +26,11 @@ Our Smart-Room app is also compatible with a Telegram bot. The Telegram bot allo
 # 2 Hardware Requirements
 1.	One DHT sensor
 2.	One LED
-
 3.	One Pi Camera Module
-
 4.	One Light-Dependant Resistor (Light Sensor)
-
-5.	One MCP3008 ADC
-
+5.  One MCP3008 ADC
 6.	One Non-contact digital water/liquid level sensor
-
 7.	One Water Pump
-
 8.	One Relay Board
-
 9.	One IR Receiver
-
 10.	One IR Transmitter
