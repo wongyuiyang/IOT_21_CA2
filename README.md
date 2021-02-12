@@ -25,7 +25,6 @@ Our Smart-Room app is also compatible with a Telegram bot. The Telegram bot allo
 
 # 2 Hardware Requirements
 1.	One DHT sensor
-
 2.	One LED
 
 3.	One Pi Camera Module
