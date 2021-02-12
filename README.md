@@ -7,7 +7,7 @@ The second feature is an LED that can be set to three different states. The firs
 
 The third feature is capturing an image and performing object and facial recognition. To capture an image, the user first clicks on the 'Capture Image' button on the web interface. After the Picam takes a picture, the app proceeds to store it in an Amazon S3 bucket. The image is then processed through Amazon Rekognition before the results are displayed onto the web interface.
 
-One bonus feature I coded is displaying images from the AWS S3 bucket. Normally, images within an AWS S3 bucket cannot be displayed unless they are publicly available and the user has a key to view them. To solve this issue, the bucket has been configured to allow links of images to be seen without needing a key. The configurations are shown in the video. This allows the web interface to display the captured image.
+One intermediate bonus feature I coded is displaying images from the AWS S3 bucket. Normally, images within an AWS S3 bucket cannot be displayed unless they are publicly available and the user has a key to view them. To solve this issue, the bucket has been configured to allow links of images to be seen without needing a key. The configurations are shown in the video. This allows the web interface to display the captured image.
 
 ## ST0324 : INTERNET OF THINGS
 ## DIPLOMA IN INFOCOMM SECURITY MANAGEMENT (DISM)
