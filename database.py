@@ -146,7 +146,6 @@ try:
             #Water Pump Process
             if flags_dict['pumpFlag'] == 1: #Auto-watering on
                 if GPIO.input(18): #Water Level Sensor == True, water level sensed
-                    bottle_flag = 0
                     print("Water level high!")
                     GPIO.output(23, GPIO.HIGH)
                 elif bottle_flag != 2:
@@ -164,6 +163,7 @@ try:
                     f.close()
                     print("Pump bottle out of water! Please refill! Smart-Pump shutting down.")
                     bot.sendMessage(1395047909, 'Refill Smart-Pump bottle!')
+                    bottle_flag = 0
             else:
                 print("Water pump offline")
                 GPIO.output(23, GPIO.HIGH)
