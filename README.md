@@ -1,19 +1,3 @@
-# RYAN SCRIPT
-(7.5) Hi, my name is Ryan and I will demonstrate the parts of the app that I coded.
-The first feature is monitoring the room's humidity and temperature levels using a DHT sensor. Over here is the DHT sensor. On the web interface, the app will display the current and highest humidity and temperature levels for today. The app will also display a real-time graph using data that is stored in a DynamoDB table called DHT.
-
-(7.6) The second feature is an LED that can be set to three different states through buttons on the web interface. The first state is a light-based state that is dependant on the LDR. When the LDR records low light levels, the LED will turn on. When light levels are high, the LED will turn off. Using a flash light to simulate high-levels, you can see that the LED turns off. The second state is a time-based state. As shown on the web interface, the LED will turn on between 11AM-6PM to simulate a natural day-night cycle. Since it is currently 4PM at the making of the video, the LED is turned on. The third state is having the LED completely turned off.
-
-(7.7) The third feature is capturing an image and performing object and facial recognition using the Pi Camera module. To capture an image, the user first clicks on the 'Capture Image' button on the web interface. Let's take a picture of the camera-man, my groupmate Yui Yang. This process may take a few minutes. After the Picam takes a picture, the app shows that the image has been stored in an Amazon S3 bucket with the following name. Looking into the Amazon S3 bucket shows that the image is there. The image is then processed through Amazon Rekognition before the results are displayed onto the web interface. As you can see, Rekognition correctly detected that there was a camera in the photo, and that my group mate is a male with calm facial features.
-
-(7.8.1) One intermediate bonus feature I coded is displaying images from the AWS S3 bucket. Normally, images within an AWS S3 bucket cannot be displayed unless they are publicly available and the user has a key to view them. As shown in the video, the permissions of the bucket has been set to public. However, this is not enough. To access the image without a key, the bucket's policy must be configured like this. (7.8.2) This allows the web interface to display the captured image using this link, which is the link of the latest image captured.
-
-(7.8.2) With that, we have finished demonstrating all the features of Our Smart-Room App.
-
-(9) I'm Ryan, and I'll talk about my contributions to the project. Here is a list of features that I coded for my CA1 project: Humidity and Temperature monitoring, Telegram bot, Using PiCam with motion sensor, Monitor and display LDR values and Manual LED switch.
-For our CA2 project, I coded: Humidity and Temperature monitoring using DynamoDB; Changeable LED states; Capturing an image with PiCam, storing them in Amazon S3 and performing object and facial recognition. I helped in writing the Github documentation and writing the step-by-step tutorial.
-Parts of my CA1 assignment such as the Humidity and Temperature monitoring, Telegram bot and PiCam were reused in CA2.
-
 ## ST0324 : INTERNET OF THINGS
 ## DIPLOMA IN INFOCOMM SECURITY MANAGEMENT (DISM)
 # IOT 21 CA2 step-by-step tutorial
