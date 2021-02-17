@@ -3,11 +3,13 @@
 # IOT 21 CA2 step-by-step tutorial
 Wong Yui Yang and Er Yong Keng Ryan's IOT CA2 github repo.
 
-This link contains the bootstrap theme for this project's web interface: https://startbootstrap.com/theme/sb-admin-2
+This link contains the Bootstrap theme for this project's web interface: https://startbootstrap.com/theme/sb-admin-2
 
-To install the bootstrap theme, create a *static* folder in the same folder where *database.py*, *server.py* and the *templates* folder are stored. In the SBAdmin template, you will see that the CSS, Javascript etc codes are stored in 5 different folders as shown.
+To install the Bootstrap theme, create a *static* folder in the same folder where *database.py*, *server.py* and the *templates* folder are stored. In the SBAdmin template, you will see that the CSS, Javascript etc codes are stored in 5 different folders as shown.
 
 ![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F0.1.jpg?raw=true)
+
+Copy the 5 folders into the *static* folder. You will now be able to use the Bootstrap theme.
 
 # Our Smart-Room App
 ## Table of contents
@@ -25,7 +27,7 @@ Our Smart-Room app can be used to power on and off devices within the room if th
 
 Our Smart-Room app is also compatible with a Telegram bot. The Telegram bot allows the user to manage LED settings and turn their room devices on and off using the infrared transmitter. It will also notify the user if the water pump's bottle is empty and requires refilling.
 
-## How the final RPI Set-up looks like
+## 1.1 How the final RPI Set-up looks like
 
 ![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F1.jpg?raw=true)
 Figure 1
@@ -38,6 +40,20 @@ Figure 3
 
 ![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F4.jpg?raw=true)
 Figure 4
+
+## 1.2 How the web app looks like
+
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F5.jpg?raw=true)
+
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F6.jpg?raw=true)
+
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F7.jpg?raw=true)
+
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F8.jpg?raw=true)
+
+## 1.3 Overview of System Architecture
+
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F9.jpg?raw=true)
 
 # 2 Hardware Requirements
 1.	One DHT sensor
