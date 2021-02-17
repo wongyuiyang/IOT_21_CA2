@@ -7,6 +7,8 @@ This link contains the bootstrap theme for this project's web interface: https:/
 
 To install the bootstrap theme, create a *static* folder in the same folder where *database.py*, *server.py* and the *templates* folder are stored. In the SBAdmin template, you will see that the CSS, Javascript etc codes are stored in 5 different folders as shown.
 
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F0.1.jpg?raw=true)
+
 # Our Smart-Room App
 ## Table of contents
 
