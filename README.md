@@ -186,14 +186,57 @@ Once you have configured the lircd.conf file, start the lirc module through' sud
 
 # 4 Software setup
 ## Software checklist
-1.	Ngrok package
-2.	Mysql-python libraries
-3.	telepot API
-4.	lirc module
-5.	AWS Python Library
-6.	Awscli
-7.	Botocore
-8.	Boto3
+The following software is needed for the program to work.
+
+Telepot API. For the RPi to be able to communicate with Telegram. You will need to create a bot in Telegram, copy down the bot token, and replace the bot token value in the python files with your own.
+```
+sudo pip install telepot
+```
+
+Lirc module. The LIRC moduel is required for the IR retriever and IR transmitter to work.
+```
+sudo apt-get install lirc
+```
+Run 'sudo systemctl start lirc' in command line to allow the IR transmitter to transmit IR signals. To check the status of lirc, run 'sudo systemctl status lirc'.
+```
+sudo systemctl start lirc
+sudo systemctl status lirc
+```
+
+AWS Python Library. The AWS Python Libraries are requires before the program can interact with AWS.
+```
+sudo pip install --upgrade --force-reinstall pip==9.0.3
+sudo pip install AWSIoTPythonSDK --upgrade --disable-pip-version-check
+sudo pip install --upgrade pip
+```
+
+Awscli.
+```
+sudo pip install awscli
+```
+If Awscli is already installed, but you want to upgrade it,
+```
+sudo pip install awscli --upgrade
+```
+
+Botocore
+```
+sudo pip install botocore
+```
+If botocore is already installed, but you want to upgrade it,
+```
+sudo pip install botocore --upgrade
+sudo pip install boto3 --upgrade
+```
+
+Ngrok can be used to host the web app on the internet. Instead of downloading the grok binary from the grok website, you can use Node.js npm package to streamline the installation process.
+```
+sudo npm install --unsafe-perm -g ngrok
+```
+Run 'ngrok http 8001' to begin hosting your raspberry pi server on the internet.
+```
+ngrok http 8001
+```
 
 ## 4.1 AWS - Creating a "Thing"
 a) Search for "IOT Core" and click it to access the IOT Core dashboard.
@@ -241,15 +284,15 @@ e) You will see a page that requires you to input a name for your Role. Key in a
 Our Smart-Room App uses 3 DynamoDB tables: DHT, IRUsage and Users.
 
 a) Open the Amazon DynamoDB console and click “Create Table”.
-b) For table DHT, create the table using the attributes as shown below:
+b) For table DHT, create the table using the attributes as shown below with default table settings, and click "create":
 
 ![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F10.5.jpg?raw=true)
 
-c) For table IRUsage, create the table using the attributes as shown below:
+c) For table IRUsage, create the table using the attributes as shown below with default table settings, and click "create":
 
 ![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F10.6.jpg?raw=true)
 
-d) For table Users, create the table using the attributes as shown below:
+d) For table Users, create the table using the attributes as shown below with default table settings, and click "create":
 
 ![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F10.7.jpg?raw=true)
 
@@ -258,20 +301,20 @@ Our Smart-Room App uses one rule to send DHT data received from a the RPi to the
 
 a) In the AWS IoT console, in the left navigation pane, choose “Act”, then “Create a rule”.
 b) On the Create a rule page, in the Name field, type a name for your rule e.g **DHT_DynamoDBRule**. In the Description field, type a description for the rule.
-c) Scroll down to Rule Query statement. Type *SELECT * FROM 'sensors/DHT'*
+c) Scroll down to Rule Query statement. Type *SELECT * FROM 'sensors/DHT'*.
 d) In Set one or more actions, choose Add action.
 e) On the Select an action page, select the action below.  Next, choose Configure action.
 
 ![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F10.8.jpg?raw=true)
 
 f) On the Configure action page, from the SNS target drop-down list, choose the DHT table you created earlier.
-g) Choose the one you created (**SmartRoomRole**) from the drop-down list and click “Update Role”.
+g) Under **IAM role name**, choose the one you created (**SmartRoomRole**) from the drop-down list and click “Update Role”.
 h) Click “Create” then "Create Rule".
 
 ## 4.8 AWS - Create your AWS credentials file
 Our Smart-Room App stores pictures taken by the PiCam into an Amazon S3 bucket and uses AWS Rekognition. For this function to work, you will need to create an AWS credentials file in your RPi.
 
-a) On your AWS Account Status, Click “Account Details” button. You will be shown a screen similar to this.
+a) On your AWS Account Status, Click “Account Details” button. You will be shown a screen similar to this. Copy the AWS CLI code.
 
 ![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F10.9.jpg?raw=true)
 
@@ -280,3 +323,62 @@ b) In your RPI, open a new Terminal window and type:
 sudo rm ~/.aws/credentials
 sudo nano ~/.aws/credentials
 ```
+c) Paste the codes you copied into the editor, and click Ctrl-O, Ctrl-X to save.
+
+## 4.9 Create and configuring a bucket on Amazon S3
+To display images on the web app, the Amazon S3 bucket permissions and policy must be configured.
+
+a) In the AWS console, search for S3. Click "Create bucket".
+b) Type in a unique name for your bucket and choose a suitable region.
+c) Click the "Permissions" tab of your newly created bucket. Click the "Edit" button under **Block public access (bucket settings)**. Uncheck everything like shown, and click "Save changes".
+
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F10.10.jpg?raw=true)
+
+e) Click the "Edit" button under **Bucket policy**, and copy this code into **Policy**, with the resource name changed to your bucket. Click "Save changes".
+
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F10.11.jpg?raw=true)
+
+# 5 Expected Outcome
+To test if the program works, follw this quick-start guide:
+1)	First connect hardware as in Figure 1 or Figure 10.
+2)	Run 'sudo systemctl start lirc' in command line to allow the IR transmitter to transmit IR signals. To check the status of lirc, run 'sudo systemctl status lirc'.
+3)	Run 'ngrok http 8001' to begin hosting your raspberry pi server on the internet.
+4)	Edit the ~/.aws/credentials file with your current AWS account credentials.
+5)	Ensure that your AWS certificates have been downloaded and are in the same folder as database.py and server.py.
+6)	Run the database.py file for hardware and database functions.
+```
+python database.py
+```
+7)	Run the server.py file for web server.
+```
+python server.py
+```
+8)	View the web server using the link ngrok provided.
+
+The following is the link to the video demonstration of what the application should look like. https://www.youtube.com/watch?v=kCmDNtVrbrw&feature=youtu.be
+
+The **database.py** terminal should show the data being sent to the DynamoDB DHT table, the current LED status, the water level and water pump status. The DynamoDB DHT table should be populated whenever **database.py** displays the MQTT message.
+
+The **server.py** terminal should show the various HTTP GET requests as shown. Due to restrictions of Ngrok, **server.py** is only able to update the data displayed on the web app every minute. This means that graphs such as the DHT graph and IRUsage graph will only update after a minute has passed.
+
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F10.12.jpg?raw=true)
+
+# 6 References
+Turning Raspberry pi into a remote controller: https://devkimchi.com/2020/08/12/turning-raspberry-pi-into-remote-controller/
+
+Using the RPi.GPIO module: https://learn.sparkfun.com/tutorials/raspberry-gpio/python-rpigpio-api
+
+Ngrok guide to host raspberry pi web server on the internet: https://thisdavej.com/how-to-host-a-raspberry-pi-web-server-on-the-internet-with-ngrok/
+
+Dfrobot guide for non-contact liquid level sensor: https://wiki.dfrobot.com/Non-contact_Liquid_Level_Sensor_XKC-Y25-T12V_SKU__SEN0204
+
+Online Manual for LIRC: https://www.lirc.org/html/
+
+Getting started developing with Python and DynamoDB: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GettingStarted.Python.html
+
+Boto3 Docs 1.17.5 documentation for DynamoDB: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb.html
+
+Configuring Amazon S3 bucket permissions and policy:
+https://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteAccessPermissionsReqd.html
+
+### -- End of CA2 step-by-step tutorial --
