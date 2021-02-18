@@ -210,4 +210,9 @@ g) Click to the next page, and click “Register Thing”.
 ## 4.2 AWS - Create a Security Policy for your RPi
 a) On the left IOT Core dashboard, select Policies under the Secure sub-menu.
 b) On the next page, choose “Create new policy”.
-c) For name, enter the name of your Thing. For action, enter *iot:\**.
+c) Key in the following configuration:
+
+| Field | Description |
+| --- | --- |
+| git status | List all new or modified files |
+| git diff | Show file differences that haven't been staged |
