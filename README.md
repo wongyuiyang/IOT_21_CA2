@@ -90,7 +90,6 @@ After hooking up the raspberry pi and the relay board, connect the GND wire of t
 
 ## IR Receiver and IR Transmitter
 To set up the IR transmitter to send IR signals, you will need to receive IR signals with the IR receiver and configure some lirc files. First, install the lirc module with 'sudo apt-get install lirc'. After installing lirc, reboot your raspberry pi using 'sudo reboot'. Configure /boot/config.txt and make these changes using 'sudo nano /boot/config.txt':
-
 ```
 # Uncomment this to enable the lirc-rpi module
 #dtoverlay=lirc-rpi
@@ -123,13 +122,11 @@ MODULES=""
 LIRCD_CONF=""
 LIRCMD_CONF=""
 ```
-
 Now, you can begin recording the IR signals of remote controls you use for your room devices. Ensure that the lirc module is stopped by using 'sudo systemctl stop lirc'. To begin recording IR signals with the IR receiver, enter 'mode2 -m -d /dev/lirc1' into the command line. Point your remote control at the IR receiver and press a button. You will see the IR signal displayed like so:
 
 ![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F11.jpg?raw=true)
 
 Copy the block of numbers within the red box, ignoring '…-pulse' and '…-space'. This will be the IR signal to replicate on the IR transmitter. To configure your IR transmitter to send this signal, configure the /etc/lirc/lircd.conf file. In the lircd.conf file, you can configure the name of the 'remote' that is the IR transmitter and the name of buttons assigned to the IR signal. An example of how your lircd.conf file should be configured is as so:
-
 ```
 begin remote
 
@@ -185,10 +182,19 @@ begin remote
 
 end remote
 ```
-
 Once you have configured the lircd.conf file, start the lirc module through' sudo systemctl start lirc'. Position your IR transmitter towards the device you want to control, and use the 'irsend' command to send IR signals from your IR transmitter. For example, 'irsend SEND_ONCE remote TV_BTN_POWER' is a command that sends an IR signal associated with the button TV_BTN_POWER once.
 
 # 4 Software setup
+## Software checklist
+1.	Ngrok package
+2.	Mysql-python libraries
+3.	telepot API
+4.	lirc module
+5.	AWS Python Library
+6.	Awscli
+7.	Botocore
+8.	Boto3
+
 ## 4.1 AWS - Creating a "Thing"
 a) Search for "IOT Core" and click it to access the IOT Core dashboard.
 b) In the left navigation pane, click “Manage” to expand it, then choose “Things”.
@@ -210,9 +216,67 @@ g) Click to the next page, and click “Register Thing”.
 ## 4.2 AWS - Create a Security Policy for your RPi
 a) On the left IOT Core dashboard, select Policies under the Secure sub-menu.
 b) On the next page, choose “Create new policy”.
-c) Key in the following configuration:
+c) Key in the following configuration with a policy name of your choosing:
 
-| Field | Description |
-| --- | --- |
-| git status | List all new or modified files |
-| git diff | Show file differences that haven't been staged |
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F10.4.jpg?raw=true)
+
+d) Click "Create"
+
+## 4.3 AWS - Attach Security Policy and Thing to your Cert
+a) On the left IOT Core dashboard, select Certificates under the Secure sub-menu.
+b) Click on the certificate. Under Actions, click "Attach Policy" and choose the policy you created earlier. Click the "Attach" button.
+c) Under Actions, click "Attach Thing" and select the checkbox next to the Thing you created. Click "Attach".
+
+## 4.4 AWS - REST API Endpoint of your Thing
+Click “Manage->Things” and choose your Thing. On the next screen, choose “Interact”. Copy and note down the REST API endpoint, as you will need it to replace the endpoints in the python code.
+
+## 4.5 AWS - Create Role
+a) Search for the IAM service on AWS Console and choose “Roles”.
+b) Click “Create Role” and on the next page, choose “AWS service”, then “IOT”.
+c) Under “Select your use case”, select IoT.
+d) Click “Next->Permissions”, click “Next->Tags”, click “Next->Review”.
+e) You will see a page that requires you to input a name for your Role. Key in a role name of your choosing e.g **SmartRoomRole**.
+
+## 4.6 AWS - Create DynamoDB tables
+Our Smart-Room App uses 3 DynamoDB tables: DHT, IRUsage and Users.
+
+a) Open the Amazon DynamoDB console and click “Create Table”.
+b) For table DHT, create the table using the attributes as shown below:
+
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F10.5.jpg?raw=true)
+
+c) For table IRUsage, create the table using the attributes as shown below:
+
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F10.6.jpg?raw=true)
+
+d) For table Users, create the table using the attributes as shown below:
+
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F10.7.jpg?raw=true)
+
+## 4.7 AWS - Create DynamoDB table rule
+Our Smart-Room App uses one rule to send DHT data received from a the RPi to the DHT table.
+
+a) In the AWS IoT console, in the left navigation pane, choose “Act”, then “Create a rule”.
+b) On the Create a rule page, in the Name field, type a name for your rule e.g **DHT_DynamoDBRule**. In the Description field, type a description for the rule.
+c) Scroll down to Rule Query statement. Type *SELECT * FROM 'sensors/DHT'*
+d) In Set one or more actions, choose Add action.
+e) On the Select an action page, select the action below.  Next, choose Configure action.
+
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F10.8.jpg?raw=true)
+
+f) On the Configure action page, from the SNS target drop-down list, choose the DHT table you created earlier.
+g) Choose the one you created (**SmartRoomRole**) from the drop-down list and click “Update Role”.
+h) Click “Create” then "Create Rule".
+
+## 4.8 AWS - Create your AWS credentials file
+Our Smart-Room App stores pictures taken by the PiCam into an Amazon S3 bucket and uses AWS Rekognition. For this function to work, you will need to create an AWS credentials file in your RPi.
+
+a) On your AWS Account Status, Click “Account Details” button. You will be shown a screen similar to this.
+
+![alt text](https://github.com/wongyuiyang/IOT_21_CA2/blob/main/images/F10.9.jpg?raw=true)
+
+b) In your RPI, open a new Terminal window and type:
+```
+sudo rm ~/.aws/credentials
+sudo nano ~/.aws/credentials
+```
